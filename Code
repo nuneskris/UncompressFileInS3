@@ -1,0 +1,36 @@
+s3 = boto3.client('s3')
+s3r = boto3.resource('s3')
+
+object = s3.Object('awsgluestudy-kris','test.txt.gz')
+
+
+import sys
+from awsglue.transforms import *
+from awsglue.utils import getResolvedOptions
+from pyspark.context import SparkContext
+from awsglue.context import GlueContext
+from awsglue.job import Job
+
+## @params: [JOB_NAME]
+args = getResolvedOptions(sys.argv, ['JOB_NAME','bucket','key'],)
+
+sc = SparkContext()
+glueContext = GlueContext(sc)
+spark = glueContext.spark_session
+job = Job(glueContext)
+job.init(args['JOB_NAME'], args)
+
+import boto3
+import zipfile
+import io
+from contextlib import closing
+
+s3 = boto3.client('s3')
+s3r = boto3.resource('s3')
+
+object = s3r.Object('bucket_in’,’C11_LOG.txt.gz')
+buffer = io.BytesIO(object.get()["Body"].read())
+filecontent = gzip.GzipFile(fileobj=buffer, mode='rb').read() 
+s3.upload_fileobj(io.BytesIO(filecontent), 'awsgluestudy-kris', 'C11_LOG.txt')
+
+job.commit()
